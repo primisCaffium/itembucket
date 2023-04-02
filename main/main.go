@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"fmt"
+	"os"
+	"path"
 	"sort"
 	"todobucket/model"
 	"todobucket/persistance"
@@ -22,7 +24,9 @@ func main() {
 	flag.Parse()
 	isListArg := len(*listItemsFlag) > 0
 
-	tool := NewTool(utils.PStr("storage.json"))
+	dirname, err := os.UserHomeDir()
+	utils.Panic(err)
+	tool := NewTool(utils.PStr(path.Join(dirname, ".ibstorage.json")))
 	switch {
 	case isListArg:
 		tool.ListItem(persistance.BucketKey(*listItemsFlag))
