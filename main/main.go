@@ -20,6 +20,8 @@ func main() {
 	moveItemToGeneralFlag := flag.Int64("moveGeneral", -1, "Specify the item id to move it from today bucket to general.")
 	emptyTodayFlag := flag.Bool("emptyToday", false, "Moves all items in today list to general.")
 	cleanupFlag := flag.Bool("cleanup", false, "Deletes all checked items.")
+	editItemFlag := flag.Int64("edit", -1, "Specify the id of the item to edit. This argument needs to be followed by -text argument.")
+	textFlag := flag.String("text", "", "Specify the text for editing an item. This argument needs to be following the -edit argument.")
 
 	flag.Parse()
 	isListArg := len(*listItemsFlag) > 0
@@ -44,6 +46,11 @@ func main() {
 		tool.EmptyToday()
 	case *cleanupFlag:
 		tool.CleanupCheckedItems()
+	case *editItemFlag > -1:
+		if len(*textFlag) == 0 {
+			panic("Missing -text argument")
+		}
+		tool.EditItem(editItemFlag, textFlag)
 	}
 
 	if !isListArg {
@@ -73,6 +80,12 @@ func NewTool(storageFile *string) *Tool {
 func (o *Tool) AddItem(title string, bucketKey persistance.BucketKey) *model.Item {
 	item := o.Storage.CreateItem(title, bucketKey)
 	return item
+}
+
+func (o *Tool) EditItem(itemId *int64, text *string) {
+	item, _ := o.Storage.FindItem(itemId)
+	item.Title = text
+	o.Storage.EditItem(itemId, item)
 }
 
 func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {

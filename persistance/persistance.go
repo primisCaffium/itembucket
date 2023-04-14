@@ -101,6 +101,14 @@ func (o *Storage) ToggleDone(itemId *int64) {
 	o.ItemList[*idx] = *item
 }
 
+func (o *Storage) EditItem(itemId *int64, item *model.Item) {
+	existingItem, idx := o.FindItem(itemId)
+	if existingItem == nil {
+		panic(fmt.Sprintf("Item id '%d' not found.", *itemId))
+	}
+	o.ItemList[*idx] = *item
+}
+
 func (o *Storage) DeleteItem(itemId *int64) {
 	_, idx := o.FindItem(itemId)
 	if idx == nil {
