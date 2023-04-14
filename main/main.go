@@ -22,13 +22,15 @@ func main() {
 	cleanupFlag := flag.Bool("cleanup", false, "Deletes all checked items.")
 	editItemFlag := flag.Int64("edit", -1, "Specify the id of the item to edit. This argument needs to be followed by -text argument.")
 	textFlag := flag.String("text", "", "Specify the text for editing an item. This argument needs to be following the -edit argument.")
+	printStorageFlag := flag.Bool("printStorage", false, "Prints the storage path.")
 
 	flag.Parse()
 	isListArg := len(*listItemsFlag) > 0
 
 	dirname, err := os.UserHomeDir()
 	utils.Panic(err)
-	tool := NewTool(utils.PStr(path.Join(dirname, ".ibstorage.json")))
+	storageFilePath := path.Join(dirname, ".ibstorage.json")
+	tool := NewTool(&storageFilePath)
 	switch {
 	case isListArg:
 		tool.ListItem(persistance.BucketKey(*listItemsFlag))
@@ -51,6 +53,9 @@ func main() {
 			panic("Missing -text argument")
 		}
 		tool.EditItem(editItemFlag, textFlag)
+	case *printStorageFlag:
+		fmt.Printf("IB storage file: %s, you can backup this.\n", storageFilePath)
+		os.Exit(0)
 	}
 
 	if !isListArg {
