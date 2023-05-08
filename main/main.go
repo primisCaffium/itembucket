@@ -97,17 +97,27 @@ func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {
 	list := o.Storage.ListItem()
 	listOfGivenBucket := make([]model.Item, 0)
 	bucketId := o.Storage.FindBucketByKey(bucketKey).Id
+	doneList := make([]model.Item, 0)
+	pendingList := make([]model.Item, 0)
 	for _, cur := range list {
 		if *cur.BucketId == *bucketId {
-			listOfGivenBucket = append(listOfGivenBucket, cur)
+			if cur.DoneDate != nil {
+				doneList = append(doneList, cur)
+			} else {
+				pendingList = append(pendingList, cur)
+			}
 		}
 	}
-	sort.Slice(listOfGivenBucket, func(i, j int) bool {
-		return *listOfGivenBucket[i].Id < *listOfGivenBucket[j].Id
+
+	sort.Slice(doneList, func(i, j int) bool {
+		return *doneList[i].Id < *doneList[j].Id
 	})
-	sort.Slice(listOfGivenBucket, func(i, j int) bool {
-		return listOfGivenBucket[i].DoneDate == nil
+	sort.Slice(pendingList, func(i, j int) bool {
+		return *pendingList[i].Id < *pendingList[j].Id
 	})
+
+	listOfGivenBucket = pendingList
+	listOfGivenBucket = append(listOfGivenBucket, doneList...)
 
 	for _, cur := range listOfGivenBucket {
 		doneChar := " "
