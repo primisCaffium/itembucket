@@ -15,6 +15,7 @@ func main() {
 	addItemFlag := flag.String("add", "", "Specify a title for adding a new item into the general bucket.")
 	addItemTodayFlag := flag.String("addToday", "", "Specify a title for adding a new item into the today bucket.")
 	listItemsFlag := flag.String("list", "", "Specify 'general' or 'today' to list all active items.")
+	compactItemIdsFlag := flag.Bool("compact", false, "Regenerate item ids sequentially starting at 1.")
 	markItemDoneFlag := flag.Int64("toggle", -1, "Specify the item id to mark it as done.")
 	moveItemToTodayFlag := flag.Int64("moveToday", -1, "Specify the item id to move it from general bucket to today.")
 	moveItemToGeneralFlag := flag.Int64("moveGeneral", -1, "Specify the item id to move it from today bucket to general.")
@@ -50,6 +51,8 @@ func main() {
 		tool.EmptyToday()
 	case *cleanupFlag:
 		tool.CleanupCheckedItems()
+	case *compactItemIdsFlag:
+		tool.CompactIds()
 	case *editItemFlag > -1:
 		if len(*textFlag) == 0 {
 			panic("Missing -text argument")
@@ -88,13 +91,11 @@ func (o *Tool) AddItem(title string, bucketKey persistance.BucketKey) *model.Ite
 	item := o.Storage.CreateItem(title, bucketKey)
 	return item
 }
-
 func (o *Tool) EditItem(itemId *int64, text *string) {
 	item, _ := o.Storage.FindItem(itemId)
 	item.Title = text
 	o.Storage.EditItem(itemId, item)
 }
-
 func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {
 	list := o.Storage.ListItem()
 	listOfGivenBucket := make([]model.Item, 0)
@@ -131,7 +132,6 @@ func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {
 	}
 	return listOfGivenBucket
 }
-
 func (o *Tool) ToggleItemCheck(itemId *int64) {
 	o.Storage.ToggleDone(itemId)
 }
@@ -166,4 +166,13 @@ func (o *Tool) CleanupCheckedItems() {
 		}
 	}
 	o.Storage.ItemList = result
+}
+func (o *Tool) CompactIds() {
+	sort.Slice(o.Storage.ItemList, func(i, j int) bool {
+		return *o.Storage.ItemList[i].Id < *o.Storage.ItemList[j].Id
+	})
+	for idx, _ := range o.Storage.ItemList {
+		itemId := int64(idx + 1)
+		o.Storage.ItemList[idx].Id = &itemId
+	}
 }
