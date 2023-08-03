@@ -12,6 +12,12 @@ import (
 )
 
 func main() {
+	defer utils.SuppressStackTraceOnPanic()
+
+	dirname, err := os.UserHomeDir()
+	utils.Panic(err)
+
+	storageDirPath := flag.String("storagePath", dirname, "Specify the path for the item bucket storage file.")
 	addItemFlag := flag.String("add", "", "Specify a title for adding a new item into the general bucket.")
 	addItemTodayFlag := flag.String("addToday", "", "Specify a title for adding a new item into the today bucket.")
 	listItemsFlag := flag.String("list", "", "Specify 'general' or 'today' to list all active items.")
@@ -25,14 +31,10 @@ func main() {
 	textFlag := flag.String("text", "", "Specify the text for editing an item. This argument needs to be following the -edit argument.")
 	printStorageFlag := flag.Bool("printStorage", false, "Prints the storage path.")
 
-	defer utils.SuppressStackTraceOnPanic()
-
 	flag.Parse()
 	isListArg := len(*listItemsFlag) > 0
 
-	dirname, err := os.UserHomeDir()
-	utils.Panic(err)
-	storageFilePath := path.Join(dirname, ".ibstorage.json")
+	storageFilePath := path.Join(*storageDirPath, ".ibstorage.json")
 	tool := NewTool(&storageFilePath)
 	switch {
 	case isListArg:
