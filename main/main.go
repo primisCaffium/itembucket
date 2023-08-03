@@ -24,6 +24,8 @@ func main() {
 	textFlag := flag.String("text", "", "Specify the text for editing an item. This argument needs to be following the -edit argument.")
 	printStorageFlag := flag.Bool("printStorage", false, "Prints the storage path.")
 
+	defer utils.SuppressStackTraceOnPanic()
+
 	flag.Parse()
 	isListArg := len(*listItemsFlag) > 0
 

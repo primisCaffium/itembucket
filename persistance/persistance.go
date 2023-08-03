@@ -57,8 +57,10 @@ func (o *Storage) load(file string) {
 	}
 }
 func (o *Storage) CreateItem(title string, bucketKey BucketKey) *model.Item {
+	id := o.ItemSequence.Next()
 	item := model.Item{
-		Id:           o.ItemSequence.Next(),
+		Id:           id,
+		OrderIdx:     id,
 		BucketId:     o.FindBucketByKey(bucketKey).Id,
 		Title:        &title,
 		CreationDate: utils.PTime(time.Now()),

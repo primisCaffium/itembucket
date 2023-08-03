@@ -4,6 +4,7 @@ import "time"
 
 type Item struct {
 	Id           *int64
+	OrderIdx     *int64
 	BucketId     *int64
 	Title        *string
 	Description  *string

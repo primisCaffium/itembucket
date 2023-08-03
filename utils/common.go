@@ -2,9 +2,17 @@ package utils
 
 import (
 	"encoding/json"
+	"fmt"
+	"os"
 	"time"
 )
 
+func SuppressStackTraceOnPanic() {
+	if r := recover(); r != nil {
+		fmt.Println(r)
+		os.Exit(1)
+	}
+}
 func Panic(err interface{}) {
 	if err != nil {
 		panic(err)
