@@ -173,8 +173,11 @@ func (o *Tool) CompactIds() {
 	sort.Slice(o.Storage.ItemList, func(i, j int) bool {
 		return *o.Storage.ItemList[i].Id < *o.Storage.ItemList[j].Id
 	})
+	lastId := int64(0)
 	for idx, _ := range o.Storage.ItemList {
 		itemId := int64(idx + 1)
 		o.Storage.ItemList[idx].Id = &itemId
+		lastId = itemId
 	}
+	o.Storage.ItemSequence.Id = &lastId
 }
