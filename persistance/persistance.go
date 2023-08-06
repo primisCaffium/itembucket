@@ -77,6 +77,11 @@ func (o *Storage) FindBucketByKey(key BucketKey) *model.Bucket {
 	}
 	panic(fmt.Sprintf("Bucket key %s not supported", key))
 }
+func (o *Storage) FindBucketKeyById(id *int64) *BucketKey {
+	bucketId := *id - 1
+	response := BucketKey(*o.BucketList[bucketId].Name)
+	return &response
+}
 func (o *Storage) ListItem() []model.Item {
 	return o.ItemList
 }

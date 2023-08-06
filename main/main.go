@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	defer utils.SuppressStackTraceOnPanic()
+	//defer utils.SuppressStackTraceOnPanic()
 
 	dirname, err := os.UserHomeDir()
 	utils.Panic(err)
@@ -22,7 +22,7 @@ func main() {
 	addItemTodayFlag := flag.String("addToday", "", "Specify a title for adding a new item into the today bucket.")
 	listItemsFlag := flag.String("list", "", "Specify 'general' or 'today' to list all active items.")
 	compactItemIdsFlag := flag.Bool("compact", false, "Regenerate item ids sequentially starting at 1.")
-	markItemDoneFlag := flag.Int64("toggle", -1, "Specify the item id to mark it as done.")
+	toggleItemFlag := flag.Int64("toggle", -1, "Specify the item id to mark it as done.")
 	moveItemToTodayFlag := flag.Int64("moveToday", -1, "Specify the item id to move it from general bucket to today.")
 	moveItemToGeneralFlag := flag.Int64("moveGeneral", -1, "Specify the item id to move it from today bucket to general.")
 	emptyTodayFlag := flag.Bool("emptyToday", false, "Moves all items in today list to general.")
@@ -36,21 +36,27 @@ func main() {
 
 	storageFilePath := path.Join(*storageDirPath, ".ibstorage.json")
 	tool := NewTool(&storageFilePath)
+	printGeneral := true
+	printToday := true
 	switch {
 	case isListArg:
 		tool.ListItem(persistance.BucketKey(*listItemsFlag))
 	case len(*addItemFlag) > 0:
 		tool.AddItem(*addItemFlag, persistance.BucketKeyGeneral)
+		printToday = false
 	case len(*addItemTodayFlag) > 0:
 		tool.AddItem(*addItemTodayFlag, persistance.BucketKeyToday)
-	case *markItemDoneFlag > -1:
-		tool.ToggleItemCheck(markItemDoneFlag)
+		printGeneral = false
+	case *toggleItemFlag > -1:
+		tool.ToggleItemCheck(toggleItemFlag)
+		printGeneral, printToday = tool.PrintGeneralAndOrTodayDependingOnItemCurrentBucket(toggleItemFlag)
 	case *moveItemToTodayFlag > -1:
 		tool.MoveItemToTodayList(moveItemToTodayFlag)
 	case *moveItemToGeneralFlag > -1:
 		tool.MoveItemToGeneralList(moveItemToGeneralFlag)
 	case *emptyTodayFlag:
 		tool.EmptyToday()
+		printToday = false
 	case *cleanupFlag:
 		tool.CleanupCheckedItems()
 	case *compactItemIdsFlag:
@@ -60,20 +66,27 @@ func main() {
 			panic("Missing -text argument")
 		}
 		tool.EditItem(editItemFlag, textFlag)
+		printGeneral, printToday = tool.PrintGeneralAndOrTodayDependingOnItemCurrentBucket(editItemFlag)
 	case *printStorageFlag:
 		fmt.Printf("IB storage file: %s, you can backup this.\n", storageFilePath)
-		os.Exit(0)
+		printGeneral = false
+		printToday = false
 	}
 
 	if !isListArg {
 		tool.Storage.Save(tool.StorageFile)
 
-		fmt.Printf("GENERAL:\n")
-		tool.ListItem(persistance.BucketKeyGeneral)
+		if printGeneral {
+			fmt.Printf("GENERAL:\n")
+			tool.ListItem(persistance.BucketKeyGeneral)
+			fmt.Printf("\n")
+		}
 
-		fmt.Printf("\nTODAY:\n")
-		tool.ListItem(persistance.BucketKeyToday)
-		fmt.Printf("\n")
+		if printToday {
+			fmt.Printf("TODAY:\n")
+			tool.ListItem(persistance.BucketKeyToday)
+			fmt.Printf("\n")
+		}
 	}
 }
 
@@ -137,6 +150,10 @@ func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {
 func (o *Tool) ToggleItemCheck(itemId *int64) {
 	o.Storage.ToggleDone(itemId)
 }
+func (o *Tool) FindBucketNameByItemId(itemId *int64) *persistance.BucketKey {
+	item, _ := o.Storage.FindItem(itemId)
+	return o.Storage.FindBucketKeyById(item.BucketId)
+}
 func (o *Tool) MoveItemToTodayList(itemId *int64) {
 	o.doMoveItemToBucket(itemId, o.Storage.FindBucketByKey(persistance.BucketKeyToday).Id)
 }
@@ -180,4 +197,16 @@ func (o *Tool) CompactIds() {
 		lastId = itemId
 	}
 	o.Storage.ItemSequence.Id = &lastId
+}
+func (o *Tool) PrintGeneralAndOrTodayDependingOnItemCurrentBucket(itemId *int64) (printGeneral, printToday bool) {
+	bucketName := o.FindBucketNameByItemId(itemId)
+	printToday = true
+	printGeneral = true
+	switch *bucketName {
+	case persistance.BucketKeyGeneral:
+		printToday = false
+	case persistance.BucketKeyToday:
+		printGeneral = false
+	}
+	return
 }
