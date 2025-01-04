@@ -1,4 +1,4 @@
-package utils
+package common
 
 import (
 	"encoding/json"
@@ -13,11 +13,13 @@ func SuppressStackTraceOnPanic() {
 		os.Exit(1)
 	}
 }
+
 func Panic(err interface{}) {
 	if err != nil {
 		panic(err)
 	}
 }
+
 func PInt64(v int64) *int64 {
 	return &v
 }
@@ -43,4 +45,23 @@ func Marshal(object interface{}) []byte {
 		panic(err)
 	}
 	return b
+}
+
+func FileExists(path string) bool {
+	if _, err := os.Stat(path); err == nil {
+		return true
+	} else {
+		return false
+	}
+}
+
+func WriteToFile(outputPath string, text string) {
+	err := os.Remove(outputPath)
+	Panic(err)
+
+	file, err := os.Create(outputPath)
+	Panic(err)
+
+	_, err = file.WriteString(text)
+	Panic(err)
 }

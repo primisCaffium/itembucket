@@ -1,8 +1,8 @@
 package persistance
 
 import (
+	"itembucket/common"
 	"sync"
-	"todobucket/utils"
 )
 
 type Sequence struct {
@@ -13,7 +13,7 @@ type Sequence struct {
 func NewSequence(initialValue *int64) *Sequence {
 	iv := initialValue
 	if iv == nil {
-		iv = utils.PInt64(0)
+		iv = common.PInt64(0)
 	}
 
 	return &Sequence{
@@ -28,6 +28,6 @@ func (o *Sequence) Next() *int64 {
 	}()
 
 	o.Mux.Lock()
-	o.Id = utils.PInt64(*o.Id + 1)
+	o.Id = common.PInt64(*o.Id + 1)
 	return o.Id
 }

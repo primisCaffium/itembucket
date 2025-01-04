@@ -1,3 +1,3 @@
-module todobucket
+module itembucket
 
 go 1.16

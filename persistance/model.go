@@ -1,4 +1,4 @@
-package model
+package persistance
 
 import "time"
 
@@ -11,6 +11,7 @@ type Item struct {
 	CreationDate *time.Time
 	DoneDate     *time.Time
 }
+
 type Bucket struct {
 	Id   *int64
 	Name *string

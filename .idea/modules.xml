@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/../itembucket/todobucket/itembucket.iml" filepath="$PROJECT_DIR$/../itembucket/todobucket/itembucket.iml" />
+      <module fileurl="file://$PROJECT_DIR$/itembucket.iml" filepath="$PROJECT_DIR$/itembucket.iml" />
     </modules>
   </component>
 </project>

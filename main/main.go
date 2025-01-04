@@ -3,19 +3,24 @@ package main
 import (
 	"flag"
 	"fmt"
+	"itembucket/common"
+	"itembucket/persistance"
 	"os"
 	"path"
 	"sort"
-	"todobucket/model"
-	"todobucket/persistance"
-	"todobucket/utils"
+)
+
+var (
+	version    string = "0.0.1"
+	buildDate  string = "unknown"
+	commitHash        = "unknown"
 )
 
 func main() {
-	//defer utils.SuppressStackTraceOnPanic()
+	defer common.SuppressStackTraceOnPanic()
 
 	dirname, err := os.UserHomeDir()
-	utils.Panic(err)
+	common.Panic(err)
 
 	storageDirPath := flag.String("storagePath", dirname, "Specify the path for the item bucket storage file.")
 	addItemFlag := flag.String("add", "", "Specify a title for adding a new item into the general bucket.")
@@ -30,6 +35,7 @@ func main() {
 	editItemFlag := flag.Int64("edit", -1, "Specify the id of the item to edit. This argument needs to be followed by -text argument.")
 	textFlag := flag.String("text", "", "Specify the text for editing an item. This argument needs to be following the -edit argument.")
 	printStorageFlag := flag.Bool("printStorage", false, "Prints the storage path.")
+	versionFlag := flag.Bool("version", false, "Prints ib version.")
 
 	flag.Parse()
 	isListArg := len(*listItemsFlag) > 0
@@ -71,10 +77,14 @@ func main() {
 		fmt.Printf("IB storage file: %s, you can backup this.\n", storageFilePath)
 		printGeneral = false
 		printToday = false
+	case *versionFlag:
+		fmt.Printf("Version: %s\nDate: %s\nCommit: %s.\n", version, buildDate, commitHash)
+		printGeneral = false
+		printToday = false
 	}
 
 	if !isListArg {
-		tool.Storage.Save(tool.StorageFile)
+		tool.Save()
 
 		if printGeneral {
 			fmt.Printf("GENERAL:\n")
@@ -102,21 +112,23 @@ func NewTool(storageFile *string) *Tool {
 	}
 }
 
-func (o *Tool) AddItem(title string, bucketKey persistance.BucketKey) *model.Item {
+func (o *Tool) AddItem(title string, bucketKey persistance.BucketKey) *persistance.Item {
 	item := o.Storage.CreateItem(title, bucketKey)
 	return item
 }
+
 func (o *Tool) EditItem(itemId *int64, text *string) {
 	item, _ := o.Storage.FindItem(itemId)
 	item.Title = text
 	o.Storage.EditItem(itemId, item)
 }
-func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {
+
+func (o *Tool) ListItem(bucketKey persistance.BucketKey) []persistance.Item {
 	list := o.Storage.ListItem()
-	listOfGivenBucket := make([]model.Item, 0)
+	listOfGivenBucket := make([]persistance.Item, 0)
 	bucketId := o.Storage.FindBucketByKey(bucketKey).Id
-	doneList := make([]model.Item, 0)
-	pendingList := make([]model.Item, 0)
+	doneList := make([]persistance.Item, 0)
+	pendingList := make([]persistance.Item, 0)
 	for _, cur := range list {
 		if *cur.BucketId == *bucketId {
 			if cur.DoneDate != nil {
@@ -147,19 +159,24 @@ func (o *Tool) ListItem(bucketKey persistance.BucketKey) []model.Item {
 	}
 	return listOfGivenBucket
 }
+
 func (o *Tool) ToggleItemCheck(itemId *int64) {
 	o.Storage.ToggleDone(itemId)
 }
+
 func (o *Tool) FindBucketNameByItemId(itemId *int64) *persistance.BucketKey {
 	item, _ := o.Storage.FindItem(itemId)
 	return o.Storage.FindBucketKeyById(item.BucketId)
 }
+
 func (o *Tool) MoveItemToTodayList(itemId *int64) {
 	o.doMoveItemToBucket(itemId, o.Storage.FindBucketByKey(persistance.BucketKeyToday).Id)
 }
+
 func (o *Tool) MoveItemToGeneralList(itemId *int64) {
 	o.doMoveItemToBucket(itemId, o.Storage.FindBucketByKey(persistance.BucketKeyGeneral).Id)
 }
+
 func (o *Tool) doMoveItemToBucket(itemId *int64, bucketId *int64) {
 	item, idx := o.Storage.FindItem(itemId)
 	if idx == nil {
@@ -168,6 +185,7 @@ func (o *Tool) doMoveItemToBucket(itemId *int64, bucketId *int64) {
 	item.BucketId = bucketId
 	o.Storage.ItemList[*idx] = *item
 }
+
 func (o *Tool) EmptyToday() {
 	todayBucketId := *o.Storage.FindBucketByKey(persistance.BucketKeyToday).Id
 	generalBucketId := *o.Storage.FindBucketByKey(persistance.BucketKeyGeneral).Id
@@ -177,8 +195,9 @@ func (o *Tool) EmptyToday() {
 		}
 	}
 }
+
 func (o *Tool) CleanupCheckedItems() {
-	result := make([]model.Item, 0)
+	result := make([]persistance.Item, 0)
 	for _, cur := range o.Storage.ItemList {
 		if cur.DoneDate == nil {
 			result = append(result, cur)
@@ -186,18 +205,20 @@ func (o *Tool) CleanupCheckedItems() {
 	}
 	o.Storage.ItemList = result
 }
+
 func (o *Tool) CompactIds() {
 	sort.Slice(o.Storage.ItemList, func(i, j int) bool {
 		return *o.Storage.ItemList[i].Id < *o.Storage.ItemList[j].Id
 	})
 	lastId := int64(0)
-	for idx, _ := range o.Storage.ItemList {
+	for idx := range o.Storage.ItemList {
 		itemId := int64(idx + 1)
 		o.Storage.ItemList[idx].Id = &itemId
 		lastId = itemId
 	}
 	o.Storage.ItemSequence.Id = &lastId
 }
+
 func (o *Tool) PrintGeneralAndOrTodayDependingOnItemCurrentBucket(itemId *int64) (printGeneral, printToday bool) {
 	bucketName := o.FindBucketNameByItemId(itemId)
 	printToday = true
@@ -209,4 +230,8 @@ func (o *Tool) PrintGeneralAndOrTodayDependingOnItemCurrentBucket(itemId *int64)
 		printGeneral = false
 	}
 	return
+}
+
+func (o *Tool) Save() {
+	o.Storage.Save(o.StorageFile)
 }

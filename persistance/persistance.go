@@ -2,10 +2,9 @@ package persistance
 
 import (
 	"fmt"
+	"itembucket/common"
 	"os"
 	"time"
-	"todobucket/model"
-	"todobucket/utils"
 )
 
 type BucketKey string
@@ -17,9 +16,9 @@ const (
 
 type Storage struct {
 	ItemSequence *Sequence
-	ItemList     []model.Item
-	ItemDoneList []model.Item
-	BucketList   []model.Bucket
+	ItemList     []Item
+	ItemDoneList []Item
+	BucketList   []Bucket
 }
 
 func NewStorage(file *string) *Storage {
@@ -32,43 +31,47 @@ func NewStorage(file *string) *Storage {
 }
 
 func (o *Storage) initBucketList() {
-	o.BucketList = []model.Bucket{
+	o.BucketList = []Bucket{
 		{
-			Id:   utils.PInt64(1),
-			Name: utils.PStr(string(BucketKeyGeneral)),
+			Id:   common.PInt64(1),
+			Name: common.PStr(string(BucketKeyGeneral)),
 		},
 		{
-			Id:   utils.PInt64(2),
-			Name: utils.PStr(string(BucketKeyToday)),
+			Id:   common.PInt64(2),
+			Name: common.PStr(string(BucketKeyToday)),
 		},
 	}
 }
+
 func (o *Storage) Save(file *string) {
 	content := *o
-	marshalled := utils.Marshal(&content)
-	utils.WriteToFile(*file, string(marshalled))
+	marshalled := common.Marshal(&content)
+	common.WriteToFile(*file, string(marshalled))
 }
+
 func (o *Storage) load(file string) {
-	exists := utils.FileExists(file)
+	exists := common.FileExists(file)
 	if exists {
 		data, err := os.ReadFile(file)
-		utils.Panic(err)
-		utils.Unmarshal(data, &o)
+		common.Panic(err)
+		common.Unmarshal(data, &o)
 	}
 }
-func (o *Storage) CreateItem(title string, bucketKey BucketKey) *model.Item {
+
+func (o *Storage) CreateItem(title string, bucketKey BucketKey) *Item {
 	id := o.ItemSequence.Next()
-	item := model.Item{
+	item := Item{
 		Id:           id,
 		OrderIdx:     id,
 		BucketId:     o.FindBucketByKey(bucketKey).Id,
 		Title:        &title,
-		CreationDate: utils.PTime(time.Now()),
+		CreationDate: common.PTime(time.Now()),
 	}
 	o.ItemList = append(o.ItemList, item)
 	return &item
 }
-func (o *Storage) FindBucketByKey(key BucketKey) *model.Bucket {
+
+func (o *Storage) FindBucketByKey(key BucketKey) *Bucket {
 	searchedBucket := string(key)
 	for _, cur := range o.BucketList {
 		if *cur.Name == searchedBucket {
@@ -77,16 +80,18 @@ func (o *Storage) FindBucketByKey(key BucketKey) *model.Bucket {
 	}
 	panic(fmt.Sprintf("Bucket key %s not supported", key))
 }
+
 func (o *Storage) FindBucketKeyById(id *int64) *BucketKey {
 	bucketId := *id - 1
 	response := BucketKey(*o.BucketList[bucketId].Name)
 	return &response
 }
-func (o *Storage) ListItem() []model.Item {
+
+func (o *Storage) ListItem() []Item {
 	return o.ItemList
 }
 
-func (o *Storage) FindItem(itemId *int64) (*model.Item, *int) {
+func (o *Storage) FindItem(itemId *int64) (*Item, *int) {
 	for idx, cur := range o.ItemList {
 		if *cur.Id == *itemId {
 			return &cur, &idx
@@ -94,6 +99,7 @@ func (o *Storage) FindItem(itemId *int64) (*model.Item, *int) {
 	}
 	return nil, nil
 }
+
 func (o *Storage) ToggleDone(itemId *int64) {
 	item, idx := o.FindItem(itemId)
 	if item == nil {
@@ -103,29 +109,15 @@ func (o *Storage) ToggleDone(itemId *int64) {
 	if item.DoneDate != nil {
 		item.DoneDate = nil
 	} else {
-		item.DoneDate = utils.PTime(time.Now())
+		item.DoneDate = common.PTime(time.Now())
 	}
 	o.ItemList[*idx] = *item
 }
 
-func (o *Storage) EditItem(itemId *int64, item *model.Item) {
+func (o *Storage) EditItem(itemId *int64, item *Item) {
 	existingItem, idx := o.FindItem(itemId)
 	if existingItem == nil {
 		panic(fmt.Sprintf("Item id '%d' not found.", *itemId))
 	}
 	o.ItemList[*idx] = *item
-}
-
-func (o *Storage) DeleteItem(itemId *int64) {
-	_, idx := o.FindItem(itemId)
-	if idx == nil {
-		return
-	}
-
-	result := make([]model.Item, 0)
-	for curIdx, cur := range o.ItemList {
-		if *idx != curIdx {
-			result = append(result, cur)
-		}
-	}
 }
